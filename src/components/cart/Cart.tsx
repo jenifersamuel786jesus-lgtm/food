@@ -359,7 +359,7 @@ export default function Cart() {
                   key={entry.fooditem._id}
                   className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
-                  <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start"
+                  <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
                     <img
                       src={entry.fooditem.images?.[0]?.url}
                       alt={entry.fooditem.name}
