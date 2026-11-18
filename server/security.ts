@@ -128,7 +128,17 @@ export function securitySanitizerMiddleware(
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
-  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://js.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com; connect-src 'self' https://api.stripe.com https://nominatim.openstreetmap.org;");
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const scriptSources = isDevelopment
+    ? "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com"
+    : "'self' https://js.stripe.com";
+  const connectSources = isDevelopment
+    ? "'self' ws://localhost:* ws://127.0.0.1:* https://api.stripe.com https://nominatim.openstreetmap.org"
+    : "'self' https://api.stripe.com https://nominatim.openstreetmap.org";
+  res.setHeader(
+    'Content-Security-Policy',
+    `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src ${scriptSources}; frame-src https://js.stripe.com https://hooks.stripe.com; connect-src ${connectSources};`
+  );
 
   // If a POST/PUT/PATCH request contains HTML markup in fields, reject it with 400 Bad Request
   // Exception: Avatar image data URLs which might start with data:image/ (they don't contain < > tags anyway)
