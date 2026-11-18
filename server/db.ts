@@ -1,10 +1,15 @@
 import mongoose from 'mongoose';
+import { setServers } from 'node:dns';
 import { initialRestaurants, initialMenus, initialCoupons } from './seedData.ts';
 import { Restaurant } from './models/Restaurant.ts';
 import { Menu } from './models/Menu.ts';
 import { Order } from './models/Order.ts';
 import { User } from './models/User.ts';
 import { Coupon } from './models/Coupon.ts';
+
+// Atlas uses DNS SRV records. Use public resolvers so serverless deployments do
+// not depend on an opaque platform resolver when discovering Atlas hosts.
+setServers(['1.1.1.1', '1.0.0.1']);
 
 let connectionError: string | null = null;
 let databaseName: string | null = null;

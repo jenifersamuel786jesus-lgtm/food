@@ -562,6 +562,7 @@ app.post('/api/v1/coupons/validate', async (req, res) => {
 // DATABASE (MONGODB) & SYSTEM HEALTH ROUTES
 // ==========================================
 app.get('/api/v1/db/status', async (_req, res) => {
+  await connectMongoDB();
   const status = await getDatabaseStatus({
     restaurants: restaurants.length,
     menus: menus.length,
