@@ -156,7 +156,11 @@ export default function AvatarEditorModal({
   const handleSave = async () => {
     try {
       setSaving(true);
-      await onSaveAvatar(selectedUrl);
+      const saved = await onSaveAvatar(selectedUrl);
+      if (saved === false) {
+        setUploadError('Your profile picture could not be saved. Please try again.');
+        return;
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -181,6 +185,9 @@ export default function AvatarEditorModal({
               </p>
             </div>
           </div>
+          {uploadError && (
+            <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">{uploadError}</p>
+          )}
           <button
             type="button"
             onClick={onClose}

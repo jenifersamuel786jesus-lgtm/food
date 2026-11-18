@@ -2,9 +2,9 @@ import { GoogleGenAI, Type } from '@google/genai';
 import type { FoodItemData, RestaurantData } from './seedData.ts';
 
 const CANDIDATE_MODELS = [
+  'gemini-flash-lite-latest',
   'gemini-3.8-flash',
   'gemini-flash-latest',
-  'gemini-3.1-flash-lite',
 ];
 
 function getGenAIClient() {

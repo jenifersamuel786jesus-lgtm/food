@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AppDispatch, RootState } from '../store.ts';
+import { AppDispatch } from '../store.ts';
 import {
   authRequest,
   authSuccess,
@@ -125,8 +125,7 @@ export const updateUserProfile =
     postalCode?: string;
     avatar?: { public_id: string; url: string } | string;
   }) =>
-  async (dispatch: AppDispatch, getState: () => RootState) => {
-    const current = getState().user.user || defaultDemoUser;
+  async (dispatch: AppDispatch) => {
     try {
       dispatch(authRequest());
 
@@ -156,40 +155,12 @@ export const updateUserProfile =
         dispatch(updateProfileSuccess(data.user));
         return true;
       }
-    } catch {
-      // Fallback local update
+    } catch (err: any) {
+      const message = err?.response?.data?.message || 'Profile could not be saved. Please try again.';
+      dispatch(authFail(message));
+      return false;
     }
-
-    let newAvatar = current.avatar;
-    if (profileData.avatar) {
-      if (typeof profileData.avatar === 'string') {
-        newAvatar = { public_id: 'avatar_custom', url: profileData.avatar };
-      } else if (profileData.avatar.url) {
-        newAvatar = profileData.avatar;
-      }
-    }
-
-    const updated = {
-      ...current,
-      name: sanitizeInput(profileData.name, 60) || current.name,
-      email: sanitizeEmail(profileData.email) || current.email,
-      phoneNumber: sanitizePhone(profileData.phoneNumber) || current.phoneNumber,
-      avatar: newAvatar,
-      defaultAddress: {
-        ...current.defaultAddress,
-        address: profileData.address ? sanitizeInput(profileData.address, 120) : current.defaultAddress?.address || '',
-        city: profileData.city ? sanitizeInput(profileData.city, 60) : current.defaultAddress?.city || '',
-        postalCode: profileData.postalCode ? sanitizeInput(profileData.postalCode, 20) : current.defaultAddress?.postalCode || '',
-      },
-    };
-
-    try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
-    } catch (storageErr) {
-      console.warn('[LocalStorage] Quota warning in fallback profile:', storageErr);
-    }
-    dispatch(updateProfileSuccess(updated));
-    return true;
+    return false;
   };
 
 /**

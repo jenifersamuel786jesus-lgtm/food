@@ -682,15 +682,17 @@ app.put('/api/v1/users/me/update', async (req, res) => {
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({ status: 'fail', message: 'User database is unavailable.' });
   }
-  const account = await User.findById(userId);
+  const account = await User.findById(userId).select('+passwordHash');
   if (!account) return res.status(401).json({ status: 'fail', message: 'Please sign in to update your profile.' });
-  let targetUser = publicUser(account);
   const { name, email, phoneNumber, address, city, postalCode, avatar } = req.body;
-  if (name) targetUser.name = name;
-  if (email) targetUser.email = email;
-  if (phoneNumber) targetUser.phoneNumber = phoneNumber;
-  if (!targetUser.defaultAddress) {
-    targetUser.defaultAddress = {
+  if (email && email !== account.email && await User.exists({ email })) {
+    return res.status(409).json({ status: 'fail', message: 'An account with this email already exists.' });
+  }
+  if (name) account.name = name;
+  if (email) account.email = email;
+  if (phoneNumber) account.phoneNumber = phoneNumber;
+  if (!account.defaultAddress) {
+    account.defaultAddress = {
       address: '',
       city: '',
       postalCode: '',
@@ -698,32 +700,36 @@ app.put('/api/v1/users/me/update', async (req, res) => {
       country: 'United States',
     };
   }
-  if (address !== undefined) targetUser.defaultAddress.address = address;
-  if (city !== undefined) targetUser.defaultAddress.city = city;
-  if (postalCode !== undefined) targetUser.defaultAddress.postalCode = postalCode;
+  if (address !== undefined) account.defaultAddress.address = address;
+  if (city !== undefined) account.defaultAddress.city = city;
+  if (postalCode !== undefined) account.defaultAddress.postalCode = postalCode;
   if (avatar) {
+    const avatarUrl = typeof avatar === 'string' ? avatar : avatar.url;
+    const allowedAvatar = typeof avatarUrl === 'string' &&
+      (/^data:image\/(jpeg|png|webp);base64,/i.test(avatarUrl) || /^https:\/\//i.test(avatarUrl));
+    if (!allowedAvatar || avatarUrl.length > 750_000) {
+      return res.status(400).json({ status: 'fail', message: 'Avatar must be a JPEG, PNG, WebP upload under 750KB, or an HTTPS image URL.' });
+    }
     if (typeof avatar === 'string') {
-      targetUser.avatar = { public_id: 'avatar_custom', url: avatar };
+      account.avatar = { public_id: 'avatar_custom', url: avatar };
     } else if (avatar && avatar.url) {
-      targetUser.avatar = {
+      account.avatar = {
         public_id: avatar.public_id || 'avatar_custom',
         url: avatar.url,
       };
     }
   }
 
-  // Update in MongoDB if connected
-  if (mongoose.connection.readyState === 1) {
-    try {
-      await User.findByIdAndUpdate(targetUser._id, targetUser, { upsert: true });
-    } catch (e: any) {
-      console.warn('[Database] User sync warning:', e.message);
-    }
+  try {
+    await account.save();
+  } catch (error: any) {
+    if (error?.code === 11000) return res.status(409).json({ status: 'fail', message: 'An account with this email already exists.' });
+    throw error;
   }
 
   res.json({
     status: 'success',
-    user: targetUser,
+    user: publicUser(account),
   });
 });
 
